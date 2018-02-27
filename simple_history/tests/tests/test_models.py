@@ -13,6 +13,7 @@ from django.db.models.fields.proxy import OrderWrt
 from django.test import TestCase
 from simple_history.models import HistoricalRecords, convert_auto_field
 from simple_history.utils import update_change_reason
+from simple_history.manager import HistoryManager
 
 from ..external.models import ExternalModel2, ExternalModel4
 from ..models import (AbstractBase, AdminProfile, Book, Bookcase, Choice, City,
@@ -23,7 +24,7 @@ from ..models import (AbstractBase, AdminProfile, Book, Bookcase, Choice, City,
                       Library, MultiOneToOne, Person, Poll, PollInfo,
                       PollWithExcludeFields, Province, Restaurant, SelfFK,
                       Series, SeriesWork, State, Temperature,
-                      UnicodeVerboseName, WaterLevel)
+                      UnicodeVerboseName, WaterLevel, Client, Company)
 
 try:
     from django.apps import apps
@@ -793,3 +794,55 @@ class CustomTableNameTest1(TestCase):
             self.get_table_name(ContactRegister.history),
             'contacts_register_history',
         )
+
+
+class ClassHasManyToManyFieldTest(TestCase):
+
+    def setUp(self):
+        self.cl = Client.objects.create(name='Bruce Wayne')
+        self.c = Company.objects.create(name='SH')
+
+    def test_m2m_field_table_has_history_record_manager(self):
+        h = self.c.clients.through.history
+        self.assertTrue(h)
+        self.assertTrue(isinstance(h, HistoryManager))
+
+    def test_manipulate_m2m_field(self):
+        # Add first client
+        self.c.clients.add(self.cl)
+        self.c.save()
+
+        h = Company.clients.through.history.all()
+        self.assertEqual(len(h), 1)
+        self.assertEqual(h[0].history_type, '+')
+
+        # Add second client
+        cl2 = Client.objects.create(name='James Gordon')
+        self.c.clients.add(cl2)
+        self.c.save()
+
+        h = Company.clients.through.history.all()
+        self.assertEqual(len(h), 2)
+        h = Company.clients.through.history.latest()
+        self.assertEqual(h.history_type, '+')
+
+        # Remove second client
+        self.c.clients.remove(cl2)
+        self.c.save()
+
+        h = Company.clients.through.history.all()
+        self.assertEqual(len(h), 3)
+        h = Company.clients.through.history.latest()
+        self.assertEqual(h.history_type, '-')
+
+        # Add third client and clear clients field
+        cl3 = Client.objects.create(name='Alfred Pennyworth')
+        self.c.clients.add(cl3)
+        self.c.save()
+        self.c.clients.clear()
+        self.c.save()
+
+        h = Company.clients.through.history.all()
+        self.assertEqual(len(h), 6)
+        h = Company.clients.through.history.latest()
+        self.assertEqual(h.history_type, '-')

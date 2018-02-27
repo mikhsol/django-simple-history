@@ -329,6 +329,16 @@ class ContactRegister(models.Model):
 register(ContactRegister, table_name='contacts_register_history')
 
 
+class Client(models.Model):
+    name = models.CharField(max_length=30)
+
+
+class Company(models.Model):
+    name = models.CharField(max_length=30)
+    clients = models.ManyToManyField(Client, related_name='company_clients')
+    history = HistoricalRecords(m2m_fields=['clients'])
+
+
 ###############################################################################
 #
 # Inheritance examples
