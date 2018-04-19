@@ -86,7 +86,19 @@ class HistoricalRecords(object):
                 models.fields.related_descriptors.ForwardManyToOneDescriptor):
                 root_model = field_value.field.related_model
 
-                if root_model == kwargs['model']:
+                # Special case when m2m field refer to itself. This case
+                # target_field_name and source_field_name are the same.
+                # And the root_model will be equal to model which passed to
+                # kwargs and be the same that type of instance we pass.
+                # for self referenced m2m field names of fields in through
+                # table will start from 'from_' and 'to_' for referenced
+                # objects.
+                if kwargs['model'] == type(instance):
+                    if field_name[:3] == 'to_':
+                        target_field_name = field_name
+                    elif field_name[:5] == 'from_':
+                        source_field_name = field_name
+                elif root_model == kwargs['model']:
                     target_field_name = field_name
                 elif root_model == type(instance):
                     source_field_name = field_name

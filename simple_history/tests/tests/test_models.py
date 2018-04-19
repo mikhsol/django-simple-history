@@ -24,7 +24,8 @@ from ..models import (AbstractBase, AdminProfile, Book, Bookcase, Choice, City,
                       Library, MultiOneToOne, Person, Poll, PollInfo,
                       PollWithExcludeFields, Province, Restaurant, SelfFK,
                       Series, SeriesWork, State, Temperature,
-                      UnicodeVerboseName, WaterLevel, Client, Company)
+                      UnicodeVerboseName, WaterLevel, Client, Company,
+                      SelfRefTestClass)
 
 try:
     from django.apps import apps
@@ -846,3 +847,10 @@ class ClassHasManyToManyFieldTest(TestCase):
         self.assertEqual(len(h), 6)
         h = Company.clients.through.history.latest()
         self.assertEqual(h.history_type, '-')
+
+    def test_self_referenced_m2m_field_bug(self):
+        s1 = SelfRefTestClass.objects.create()
+        s2 = SelfRefTestClass.objects.create()
+
+        s1.rep.add(s2)
+        s1.rep.remove(s2)

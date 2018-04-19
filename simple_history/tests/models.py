@@ -339,6 +339,16 @@ class Company(models.Model):
     history = HistoricalRecords(m2m_fields=['clients'])
 
 
+class SelfRefTestClass(models.Model):
+    rep = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='self_rep'
+    )
+    history = HistoricalRecords(m2m_fields=['rep'])
+
+
 ###############################################################################
 #
 # Inheritance examples
