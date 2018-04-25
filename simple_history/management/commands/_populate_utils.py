@@ -17,13 +17,19 @@ def get_history_model_for_model(model):
 
 def bulk_history_create(model, history_model, batch_size):
     """Save a copy of all instances to the historical model."""
+    excluded_fields = []
+    try:
+        excluded_fields = model.get_excluded_fields()
+    except AttributeError:
+        pass
+
     historical_instances = [
         history_model(
             history_date=getattr(instance, '_history_date', now()),
             history_user=getattr(instance, '_history_user', None),
             **{
                 field.attname: getattr(instance, field.attname)
-                for field in instance._meta.fields
+                for field in instance._meta.fields if field.name not in excluded_fields
             }
         ) for instance in model.objects.all()]
     history_model.objects.bulk_create(historical_instances, batch_size=batch_size)
